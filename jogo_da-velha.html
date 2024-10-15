@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Sarah</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #141212;
+            font-family: Arial, sans-serif;
+            color: rgb(226, 227, 236);
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #ce0f0f;
+            border: 2px solid #e6dcee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            color: #cadad8;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .cell:hover {
+            background-color: #ceb6b6;
+        }
+        .winner {
+            background-color: #3f8f3f;
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 1.5em;
+            display: none;
+        }
+        .trophy {
+            display: none;
+            font-size: 2em;
+        }
+        .reset {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #084586;
+            color: rgba(250, 206, 206, 0.685);
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            border-radius: 5px;
+        }
+        .reset:hover {
+            background-color: #d31838;
+        }
+        #fireworks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo Sarah Biduga</h1>
+    <div class="board" id="board"></div>
+    <div class="message" id="message"></div>
+    <div class="trophy" id="trophy">🏆 Você jogar Demais Deu Aula 🏆 !</div>
+    <button class="reset" id="resetButton">Jogar Novamente</button>
+    <canvas id="fireworks"></canvas>
+
+    <script>
+        const boardElement = document.getElementById('board');
+        const messageElement = document.getElementById('message');
+        const resetButton = document.getElementById('resetButton');
+        const trophyElement = document.getElementById('trophy');
+        const fireworksCanvas = document.getElementById('fireworks');
+        const ctx = fireworksCanvas.getContext('2d');
+        
+        let board = ['', '', '', '', '', '','','','', ];
+        let currentPlayer = 'x';
+        let gameActive = true;
+
+        fireworksCanvas.width = window.innerWidth;
+        fireworksCanvas.height = window.innerHeight;
+
+        function createBoard() {
+            boardElement.innerHTML = '';
+            board.forEach((cell, index) => {
+                const cellElement = document.createElement('div');
+                cellElement.classList.add('cell');
+                cellElement.setAttribute('data-index', index);
+                cellElement.textContent = cell;
+                cellElement.addEventListener('click', handleCellClick);
+                boardElement.appendChild(cellElement);
+            });
+        }
+
+        function handleCellClick(event) {
+            const index = event.target.getAttribute('data-index');
+            if (board[index] !== '' || !gameActive) {
+                return;
+            }
+            board[index] = currentPlayer;
+            event.target.textContent = currentPlayer;
+            checkWinner();
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        }
+
+        function checkWinner() {
+            const winningConditions = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6],
+            ];
+
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    gameActive = false;
+                    messageElement.textContent = `Jogador ${board[a]} venceu! Você é campeão!`;
+                    messageElement.style.display = 'block';
+                    trophyElement.style.display = 'block';
+                    highlightWinner(condition);
+                    triggerFireworks();
+                    return;
+                }
+            }
+
+            if (!board.includes('')) {
+                gameActive = false;
+                messageElement.textContent = 'Empate!';
+                messageElement.style.display = 'block';
+            }
+        }
+
+        function highlightWinner(condition) {
+            condition.forEach(index => {
+                const cellElements = document.querySelectorAll('.cell');
+                cellElements[index].classList.add('winner');
+            });
+        }
+
+        resetButton.addEventListener('click', resetGame);
+
+        function resetGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            messageElement.textContent = '';
+            messageElement.style.display = 'none';
+            trophyElement.style.display = 'none';
+            createBoard();
+        }
+
+        function triggerFireworks() {
+            fireworksCanvas.style.display = 'block';
+            const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'];
+            const explosions = 30;
+
+            for (let i = 0; i < explosions; i++) {
+                const x = Math.random() * fireworksCanvas.width;
+                const y = Math.random() * fireworksCanvas.height;
+                const radius = Math.random() * 50 + 10;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                drawFirework(x, y, radius, color);
+            }
+
+            setTimeout(() => {
+                fireworksCanvas.style.display = 'none';
+            }, 3000);
+        }
+
+        function drawFirework(x, y, radius, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        createBoard();
+    </script>
+</body>
+</html>
